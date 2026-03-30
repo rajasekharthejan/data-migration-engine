@@ -1,0 +1,1601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zero-Downtime Data Migration Engine — Deep Learning Guide</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --border: #334155;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --green: #4ade80;
+    --yellow: #fbbf24;
+    --red: #f87171;
+    --purple: #c084fc;
+    --orange: #fb923c;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    padding: 0;
+  }
+
+  /* ── Navigation ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    z-index: 100;
+    padding: 12px 24px;
+  }
+  nav .nav-inner {
+    max-width: 1100px; margin: 0 auto;
+    display: flex; align-items: center; gap: 20px;
+    overflow-x: auto;
+  }
+  nav a {
+    color: var(--muted); text-decoration: none; font-size: 0.85rem;
+    white-space: nowrap; padding: 4px 8px; border-radius: 4px;
+    transition: all 0.2s;
+  }
+  nav a:hover { color: var(--accent); background: rgba(56,189,248,0.1); }
+  nav .logo { color: var(--accent); font-weight: 700; font-size: 1rem; }
+
+  /* ── Main ── */
+  .container { max-width: 1100px; margin: 0 auto; padding: 80px 24px 60px; }
+
+  h1 {
+    font-size: 2.5rem; font-weight: 800; margin-bottom: 8px;
+    background: linear-gradient(135deg, var(--accent), var(--purple));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .subtitle { color: var(--muted); font-size: 1.1rem; margin-bottom: 40px; }
+
+  h2 {
+    font-size: 1.8rem; font-weight: 700; color: var(--accent);
+    margin-top: 60px; margin-bottom: 16px;
+    padding-bottom: 8px; border-bottom: 2px solid var(--border);
+  }
+  h3 { font-size: 1.3rem; color: var(--green); margin-top: 32px; margin-bottom: 12px; }
+  h4 { font-size: 1.1rem; color: var(--yellow); margin-top: 24px; margin-bottom: 8px; }
+
+  p { margin-bottom: 16px; }
+  ul, ol { margin-bottom: 16px; padding-left: 24px; }
+  li { margin-bottom: 6px; }
+
+  /* ── Diagram boxes ── */
+  .diagram {
+    background: #0c1222;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+    overflow-x: auto;
+    position: relative;
+  }
+  .diagram pre {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--green);
+    margin: 0;
+    white-space: pre;
+  }
+  .diagram-label {
+    position: absolute; top: -12px; left: 16px;
+    background: var(--accent); color: var(--bg);
+    font-size: 0.75rem; font-weight: 700;
+    padding: 2px 10px; border-radius: 4px;
+  }
+
+  /* ── Code blocks ── */
+  .code {
+    background: #0c1222;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    overflow-x: auto;
+  }
+  .code pre {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--text);
+    margin: 0;
+  }
+  .code .comment { color: #6b7280; }
+  .code .keyword { color: var(--purple); }
+  .code .string { color: var(--green); }
+  .code .fn { color: var(--yellow); }
+
+  /* ── Analogy cards (purple) ── */
+  .card-analogy {
+    background: linear-gradient(135deg, rgba(192,132,252,0.1), rgba(192,132,252,0.05));
+    border: 1px solid rgba(192,132,252,0.3);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 20px 0;
+  }
+  .card-analogy .card-title {
+    color: var(--purple); font-weight: 700; font-size: 0.95rem; margin-bottom: 8px;
+  }
+
+  /* ── Info cards ── */
+  .card-info {
+    background: rgba(56,189,248,0.08);
+    border: 1px solid rgba(56,189,248,0.25);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 20px 0;
+  }
+  .card-info .card-title {
+    color: var(--accent); font-weight: 700; margin-bottom: 6px;
+  }
+
+  /* ── Warning cards ── */
+  .card-warn {
+    background: rgba(251,191,36,0.08);
+    border: 1px solid rgba(251,191,36,0.25);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 20px 0;
+  }
+  .card-warn .card-title {
+    color: var(--yellow); font-weight: 700; margin-bottom: 6px;
+  }
+
+  /* ── Interview Q&A ── */
+  .qa {
+    background: var(--surface);
+    border-left: 4px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+  .qa .q { color: var(--accent); font-weight: 700; margin-bottom: 8px; }
+  .qa .a { color: var(--text); }
+
+  /* ── Table of contents ── */
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin: 24px 0;
+  }
+  .toc h3 { color: var(--accent); margin-top: 0; }
+  .toc ol { counter-reset: toc; padding-left: 0; }
+  .toc li {
+    list-style: none; counter-increment: toc;
+    padding: 4px 0;
+  }
+  .toc li::before {
+    content: counter(toc, decimal-leading-zero) ". ";
+    color: var(--accent); font-weight: 700;
+  }
+  .toc a { color: var(--text); text-decoration: none; }
+  .toc a:hover { color: var(--accent); }
+
+  strong { color: var(--accent); }
+  code {
+    background: rgba(56,189,248,0.1);
+    color: var(--accent);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.9em;
+  }
+
+  @media (max-width: 768px) {
+    h1 { font-size: 1.8rem; }
+    .diagram pre { font-size: 0.7rem; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <span class="logo">Migration Engine Guide</span>
+    <a href="#overview">Overview</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#extraction">DB2 Extraction</a>
+    <a href="#staging">S3 Staging</a>
+    <a href="#transformation">ETL Transforms</a>
+    <a href="#validation">Business Rules</a>
+    <a href="#loading">FAST Loading</a>
+    <a href="#bluegreen">Blue/Green</a>
+    <a href="#reconciliation">Reconciliation</a>
+    <a href="#lineage">Data Lineage</a>
+    <a href="#chatbot">AI Chatbot</a>
+    <a href="#database">Database Schema</a>
+    <a href="#pipeline">Pipeline Orchestration</a>
+    <a href="#testing">Testing</a>
+    <a href="#deployment">Deployment</a>
+    <a href="#interview">Interview Q&A</a>
+  </div>
+</nav>
+
+<div class="container">
+
+<h1>Zero-Downtime Data Migration &amp; Reconciliation Engine</h1>
+<p class="subtitle">A complete guide to building a production-grade DB2-to-cloud migration pipeline with reconciliation, lineage tracking, and AI-powered data stewardship.</p>
+
+<!-- ─── TABLE OF CONTENTS ─── -->
+<div class="toc">
+  <h3>Table of Contents</h3>
+  <ol>
+    <li><a href="#overview">The Big Picture — What &amp; Why</a></li>
+    <li><a href="#architecture">End-to-End Architecture</a></li>
+    <li><a href="#extraction">DB2 Mainframe Extraction</a></li>
+    <li><a href="#staging">S3 Staging Layer</a></li>
+    <li><a href="#transformation">Field Transformations &amp; ETL</a></li>
+    <li><a href="#validation">Business Rule Validation</a></li>
+    <li><a href="#loading">FAST System Loading</a></li>
+    <li><a href="#bluegreen">Blue/Green Deployment Strategy</a></li>
+    <li><a href="#reconciliation">Record-by-Record Reconciliation</a></li>
+    <li><a href="#lineage">Metadata Lineage Tracking</a></li>
+    <li><a href="#chatbot">AI Lineage Chatbot</a></li>
+    <li><a href="#database">Database Schema &amp; Models</a></li>
+    <li><a href="#pipeline">Pipeline Orchestration</a></li>
+    <li><a href="#testing">Testing Strategy</a></li>
+    <li><a href="#deployment">Docker &amp; CI/CD Deployment</a></li>
+    <li><a href="#interview">Interview Questions &amp; Answers (25+)</a></li>
+  </ol>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2 id="overview">01. The Big Picture — What &amp; Why</h2>
+
+<p>Insurance companies have run on <strong>DB2 mainframes</strong> since the 1980s. These systems are reliable but expensive ($10,000+/month in MIPS costs), hard to hire for (COBOL developers are retiring), and can't integrate with modern cloud services.</p>
+
+<p>This engine moves data from DB2 to <strong>FAST</strong> (Financial Administration Service Technology), a modern cloud platform, with these guarantees:</p>
+
+<ul>
+  <li><strong>Zero downtime</strong> — production never goes dark during migration</li>
+  <li><strong>99.99% accuracy</strong> — every record verified field-by-field after migration</li>
+  <li><strong>Full lineage</strong> — every field traced from source to target with transformation history</li>
+  <li><strong>Instant rollback</strong> — if anything goes wrong, restore previous state in seconds</li>
+</ul>
+
+<div class="card-analogy">
+  <div class="card-title">🏠 Real-World Analogy: Moving to a New House</div>
+  <p>Imagine moving your entire life from an old house (DB2) to a new one (FAST). You can't just throw everything in a truck — you need to pack carefully (extract), label every box (transform), check nothing broke during the move (reconcile), and keep living in the old house until the new one is fully set up (zero downtime). If the new house has a gas leak, you move right back (rollback).</p>
+</div>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 1: Why Migrate?</div>
+<pre>
+    OLD WORLD (DB2 Mainframe)              NEW WORLD (FAST Cloud)
+    ┌─────────────────────┐               ┌─────────────────────┐
+    │  💰 $10K+/mo MIPS   │               │  💰 Pay-per-use     │
+    │  👴 COBOL developers │    ──────►    │  🐍 Python/Spark    │
+    │  📦 Batch processing │   MIGRATE     │  ⚡ Real-time APIs   │
+    │  🔒 On-premise only  │               │  ☁️  Cloud-native    │
+    │  📊 No analytics     │               │  📈 ML/AI ready     │
+    └─────────────────────┘               └─────────────────────┘
+
+    Problem: Can't just "turn off" the mainframe.
+    Millions of active policies depend on it 24/7.
+    Solution: Blue/Green deployment with reconciliation.
+</pre>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2 id="architecture">02. End-to-End Architecture</h2>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 2: 7-Stage Migration Pipeline</div>
+<pre>
+  ┌─────────┐    ┌─────────┐    ┌──────────┐    ┌──────────┐    ┌─────────┐    ┌───────────┐    ┌─────────┐
+  │ EXTRACT  │───►│  STAGE   │───►│TRANSFORM │───►│ VALIDATE │───►│  LOAD   │───►│ RECONCILE │───►│ PROMOTE │
+  │  (DB2)   │    │  (S3)    │    │ (Glue)   │    │ (Rules)  │    │ (FAST)  │    │ (Compare) │    │ (Swap)  │
+  └─────────┘    └─────────┘    └──────────┘    └──────────┘    └─────────┘    └───────────┘    └─────────┘
+       │              │               │               │              │               │               │
+   DB2 Extract    Parquet to     Field mapping    Insurance     REST API to    Source vs Target   Blue→Green
+   with XXHash    S3 bucket     date,decimal,    domain rules   FAST green     field-by-field     atomic swap
+   checksums      staging       SSN mask         per record     deployment     99.99% required    or ROLLBACK
+                                                                                    │
+                                                                               ┌────▼────┐
+                                                                               │ROLLBACK │
+                                                                               │(Discard)│
+                                                                               └─────────┘
+</pre>
+</div>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 3: Data Flow Detail</div>
+<pre>
+  DB2 Mainframe                    AWS Cloud                         FAST Platform
+  ┌──────────────┐     ┌──────────────────────────────┐     ┌──────────────────┐
+  │              │     │                              │     │                  │
+  │ POLICY_MASTER│────►│ S3: migrations/{job}/extract │────►│ POST /entities/  │
+  │ CLAIMS_MASTER│     │     (Parquet + Snappy)       │     │   policy/batch   │
+  │ PREMIUM_HIST │     │              │               │     │                  │
+  │              │     │         ┌────▼────┐          │     │ ┌──────────────┐ │
+  │  (ibm_db)   │     │         │AWS Glue │          │     │ │ Green Slot   │ │
+  │  (XXHash)    │     │         │(Spark)  │          │     │ │ (staging)    │ │
+  │              │     │         └────┬────┘          │     │ └──────┬───────┘ │
+  └──────────────┘     │              │               │     │        │         │
+                       │ S3: migrations/{job}/output  │     │   PROMOTE ──►    │
+                       │     (Transformed Parquet)    │     │ ┌──────▼───────┐ │
+                       └──────────────────────────────┘     │ │ Blue Slot    │ │
+                                                            │ │ (production) │ │
+                                                            │ └──────────────┘ │
+                                 PostgreSQL                 └──────────────────┘
+                       ┌──────────────────────────────┐
+                       │ Metadata Store:               │
+                       │ • migration_jobs              │
+                       │ • migration_batches           │
+                       │ • reconciliation_results      │
+                       │ • lineage_records             │
+                       │ • audit_events                │
+                       └──────────────────────────────┘
+</pre>
+</div>
+
+<div class="card-analogy">
+  <div class="card-title">🏭 Real-World Analogy: Factory Assembly Line</div>
+  <p>Think of this as a factory assembly line. Raw materials (DB2 records) enter at one end. Each station does one job: cut (extract), shape (transform), inspect (validate), assemble (load), quality-check (reconcile). If QC fails, the defective batch is pulled off the line (rollback). Every piece has a serial number tracking its journey (lineage).</p>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2 id="extraction">03. DB2 Mainframe Extraction</h2>
+
+<h3>What is DB2?</h3>
+<p>IBM DB2 is a relational database that runs on mainframes (z/OS). Insurance companies store policy, claims, and premium data here — often 50+ years of history. We connect via <code>ibm_db</code> Python driver and pull data using SQL with <code>OFFSET/FETCH</code> pagination.</p>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 4: DB2 Extraction Flow</div>
+<pre>
+  DB2 Mainframe (z/OS)
+  ┌─────────────────────────────────────────────────┐
+  │                                                 │
+  │  SELECT * FROM POLICY_MASTER                    │
+  │  ORDER BY POLICY_ID                             │
+  │  OFFSET 0     FETCH FIRST 10000 ROWS ONLY  ──────► Batch 0 (10K records)
+  │  OFFSET 10000 FETCH FIRST 10000 ROWS ONLY  ──────► Batch 1 (10K records)
+  │  OFFSET 20000 FETCH FIRST 10000 ROWS ONLY  ──────► Batch 2 (10K records)
+  │  ...                                            │
+  │                                                 │
+  └─────────────────────────────────────────────────┘
+              │
+              ▼
+  ┌─────────────────────────────────────────────────┐
+  │  For each batch:                                │
+  │  1. Execute SQL query                           │
+  │  2. Fetch rows as Python dicts                  │
+  │  3. Compute XXHash checksum                     │
+  │  4. Return ExtractionResult(records, checksum)  │
+  └─────────────────────────────────────────────────┘
+</pre>
+</div>
+
+<h3>Why XXHash instead of SHA-256?</h3>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 5: Checksum Speed Comparison</div>
+<pre>
+  Hashing Speed (higher = better):
+
+  XXHash (xxh64):  ████████████████████████████████████████  10 GB/s
+  CRC32:           ████████████████████████                   6 GB/s
+  SHA-256:         ██████                                   500 MB/s
+  MD5:             ████████████                               1 GB/s
+
+  We use XXHash because:
+  • 20x faster than SHA-256
+  • We need INTEGRITY VERIFICATION, not cryptographic security
+  • Millions of records → speed matters
+  • If the checksum at source ≠ checksum at target, data was corrupted in transit
+</pre>
+</div>
+
+<h3>Parallel Extraction</h3>
+
+<p>A single DB2 connection is slow for large tables (millions of rows). We use Python's <code>ProcessPoolExecutor</code> to run multiple extraction workers in parallel, each pulling a different offset range.</p>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 6: Parallel Extraction with ProcessPoolExecutor</div>
+<pre>
+  Main Process
+  ┌──────────────────────────────────────────────────────┐
+  │  ParallelExtractor.extract_table()                   │
+  │                                                      │
+  │  Total: 100,000 records / batch_size: 10,000         │
+  │  = 10 batches to extract                             │
+  │                                                      │
+  │  ProcessPoolExecutor(max_workers=4)                  │
+  │  ┌──────────┬──────────┬──────────┬──────────┐       │
+  │  │ Worker 1 │ Worker 2 │ Worker 3 │ Worker 4 │       │
+  │  │Batch 0,4,│Batch 1,5,│Batch 2,6,│Batch 3,7 │      │
+  │  │  8       │  9       │          │          │       │
+  │  └────┬─────┴────┬─────┴────┬─────┴────┬─────┘      │
+  │       ▼          ▼          ▼          ▼              │
+  │  ┌─────────────────────────────────────────────┐     │
+  │  │  Collect results + combine checksums         │     │
+  │  │  Return: (all_records, combined_checksum)    │     │
+  │  └─────────────────────────────────────────────┘     │
+  └──────────────────────────────────────────────────────┘
+
+  Why ProcessPoolExecutor (not ThreadPoolExecutor)?
+  → DB2 extraction is CPU-bound (parsing EBCDIC, packed decimals)
+  → Threads share GIL → no real parallelism for CPU work
+  → Processes bypass GIL → true parallel execution
+</pre>
+</div>
+
+<div class="card-analogy">
+  <div class="card-title">📦 Real-World Analogy: Warehouse Packing</div>
+  <p>Imagine a warehouse with 100,000 boxes to pack. One person (single thread) would take forever. Instead, you hire 4 workers (processes), each packing their assigned section simultaneously. Each worker stamps their boxes with a serial number (checksum) so you can verify nothing went missing.</p>
+</div>
+
+<div class="code">
+<pre>
+<span class="comment"># Key extraction code (simplified)</span>
+<span class="keyword">class</span> <span class="fn">DB2Extractor</span>:
+    <span class="keyword">def</span> <span class="fn">extract_batch</span>(self, table_name, batch_size, offset):
+        sql = <span class="string">f"""
+            SELECT * FROM {table_name}
+            ORDER BY POLICY_ID
+            OFFSET {offset} ROWS
+            FETCH FIRST {batch_size} ROWS ONLY
+        """</span>
+        rows = self._execute_query(sql)
+        checksum = xxhash.xxh64(str(rows).encode()).hexdigest()
+        <span class="keyword">return</span> ExtractionResult(records=rows, checksum=checksum)
+</pre>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2 id="staging">04. S3 Staging Layer</h2>
+
+<p>After extraction, raw data goes to <strong>Amazon S3</strong> as Parquet files. S3 acts as the "staging area" between extraction and transformation — decoupling the two stages so they can run independently.</p>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 7: S3 Bucket Structure</div>
+<pre>
+  s3://migration-staging/
+  └── migrations/
+      └── MIG-20260115-abc12345/          ← Job ID
+          ├── policies/
+          │   ├── extract/
+          │   │   ├── batch_0000.parquet   ← Raw DB2 data
+          │   │   ├── batch_0001.parquet
+          │   │   └── batch_0002.parquet
+          │   └── output/
+          │       ├── batch_0000.parquet   ← Transformed data
+          │       ├── batch_0001.parquet
+          │       └── batch_0002.parquet
+          ├── claims/
+          │   ├── extract/
+          │   └── output/
+          └── premiums/
+              ├── extract/
+              └── output/
+</pre>
+</div>
+
+<h3>Why Parquet?</h3>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 8: File Format Comparison</div>
+<pre>
+  Format     Storage    Read Speed    Schema?    Spark?    Compression
+  ───────────────────────────────────────────────────────────────────
+  CSV        █████████  ████          No ❌      Slow      Poor
+  JSON       ████████   ███           Partial    Slow      Poor
+  Parquet    ██         █████████     Yes ✅     Fast ⚡   Excellent
+  Avro       ███        ██████        Yes ✅     Good      Good
+
+  Parquet wins because:
+  ┌─────────────────────────────────────────────────────────────┐
+  │  1. COLUMNAR STORAGE: Read only the columns you need       │
+  │     CSV reads ALL columns even if you need just "name"     │
+  │     Parquet skips irrelevant columns → 10-100x faster      │
+  │                                                            │
+  │  2. SCHEMA PRESERVATION: Types survive the round-trip      │
+  │     CSV: "1250.50" (string? float? who knows)              │
+  │     Parquet: 1250.50 (DOUBLE, guaranteed)                  │
+  │                                                            │
+  │  3. COMPRESSION: Snappy = fast + small                     │
+  │     100MB CSV → ~10MB Parquet with Snappy                  │
+  │     10x smaller files = 10x cheaper S3 storage             │
+  │                                                            │
+  │  4. SPARK-NATIVE: AWS Glue (Spark) reads Parquet natively  │
+  │     No parsing overhead, direct memory mapping             │
+  └─────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+
+<div class="card-analogy">
+  <div class="card-title">📚 Real-World Analogy: Library Organization</div>
+  <p>CSV is like a bookshelf where every book is face-out — you see everything but waste space. Parquet is like a card catalog system — books are stored spine-out (compressed), organized by category (columns), with an index card (schema) telling you exactly what's inside without opening the book.</p>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2 id="transformation">05. Field Transformations &amp; ETL</h2>
+
+<p>DB2 stores data in mainframe formats (packed decimal, EBCDIC, 8-digit dates). FAST expects modern formats (float, UTF-8, ISO 8601). The transformation layer converts every field.</p>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 9: DB2 → FAST Field Mapping</div>
+<pre>
+  DB2 (Source Format)                    FAST (Target Format)
+  ─────────────────────────────────────────────────────────────
+  POLICY_ID   "  POL-123456  "    ────►  "POL-123456"         trim_string
+  FIRST_NM    "JOHN"              ────►  "John"               name_title_case
+  LAST_NM     "DOE"               ────►  "Doe"                name_title_case
+  PREM_AMT    0001250050 (packed) ────►  1250.50 (float)      packed_decimal
+  EFF_DT      "01/15/2026"       ────►  "2026-01-15"         db2_date_to_iso
+  STATUS_CD   "A"                 ────►  "active"             status_code_map
+  SSN         "123-45-6789"       ────►  "***-**-6789"        ssn_mask
+  PHONE_NO    "(555) 123-4567"    ────►  "+15551234567"       phone_normalize
+  ACTIVE_FL   "Y"                 ────►  true                 boolean_from_flag
+  COV_AMT     250000.00           ────►  25000000 (cents)     currency_to_cents
+</pre>
+</div>
+
+<h3>Status Code Mapping</h3>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 10: DB2 Status Codes → FAST Status Values</div>
+<pre>
+  DB2 Code    FAST Value        Meaning
+  ────────────────────────────────────────
+  "A"    ────►  "active"         Policy is active and in force
+  "I"    ────►  "inactive"       Policy is deactivated
+  "L"    ────►  "lapsed"         Premium payments stopped
+  "C"    ────►  "cancelled"      Policy cancelled by holder
+  "P"    ────►  "pending"        Application in review
+  "S"    ────►  "suspended"      Under investigation
+  "E"    ────►  "expired"        Term policy reached end date
+
+  If code is not in map → value passes through unchanged
+  (e.g., "active" stays "active" — idempotent)
+</pre>
+</div>
+
+<h3>SSN Masking for PII Compliance</h3>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 11: SSN Masking Process</div>
+<pre>
+  Input: "123-45-6789"         Input: "123456789" (no dashes)
+
+  Step 1: Strip non-digits     Step 1: Already digits only
+          "123456789"                   "123456789"
+
+  Step 2: Keep last 4 digits   Step 2: Keep last 4 digits
+          "6789"                        "6789"
+
+  Step 3: Format with mask     Step 3: Format with mask
+          "***-**-6789"                 "***-**-6789"
+
+  ⚠️  Why mask SSNs?
+  • PII regulation (HIPAA, CCPA, GDPR)
+  • Target system doesn't need full SSN
+  • Last 4 digits sufficient for matching
+  • Original SSN stays in source (DB2) only
+</pre>
+</div>
+
+<h3>AWS Glue ETL (Spark-based)</h3>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 12: AWS Glue Job Lifecycle</div>
+<pre>
+  ┌────────────┐    ┌──────────────┐    ┌───────────────┐    ┌──────────┐
+  │  CREATE    │───►│    RUN       │───►│   POLL        │───►│ COMPLETE │
+  │  Glue Job  │    │  Job Run     │    │   Status      │    │          │
+  └────────────┘    └──────────────┘    └───────────────┘    └──────────┘
+       │                  │                    │                   │
+  create_job()       run_job()          wait_for_completion()     │
+  • GlueVersion 4.0  • source S3 path    • Check every 30s       │
+  • G.1X workers     • output S3 path    • Timeout: 3600s        │
+  • 10 workers       • Start job run     • SUCCEEDED → done      │
+  • Python shell     • Returns run_id    • FAILED → raise        │
+                                         • RUNNING → wait        │
+                                                                  │
+                                          ┌───────────────────────▼──┐
+                                          │ If FAILED:                │
+                                          │ • Log error details       │
+                                          │ • Pipeline marks job as   │
+                                          │   "failed" in metadata    │
+                                          │ • Triggers rollback       │
+                                          └──────────────────────────┘
+</pre>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2 id="validation">06. Business Rule Validation</h2>
+
+<p>Before loading into FAST, every record passes through <strong>insurance-domain business rules</strong>. These catch data quality issues before they reach production.</p>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 13: Business Rule Validation Flow</div>
+<pre>
+  Transformed Record
+  ┌────────────────────────────────────────────────┐
+  │ policy_id: "POL-123456"                        │
+  │ premium_amount: 1250.50                        │
+  │ coverage_amount: 500000.00                     │
+  │ effective_date: "2026-01-15"                   │
+  │ status: "active"                               │
+  │ product_type: "whole_life"                     │
+  └──────────────────┬─────────────────────────────┘
+                     │
+        ┌────────────▼────────────────┐
+        │      RULE ENGINE            │
+        │                             │
+        │  ✅ policy_id_format        │  POL-\d{6} regex match?
+        │  ✅ premium_positive        │  amount > 0?
+        │  ✅ coverage_minimum        │  amount >= $1,000?
+        │  ✅ effective_date_valid    │  not in the future?
+        │  ✅ status_valid            │  in allowed list?
+        │  ✅ product_type_valid      │  in allowed list?
+        │  ✅ premium_within_range    │  within product limits?
+        │                             │
+        └────────────┬────────────────┘
+                     │
+              ┌──────▼───────┐
+              │ PASS / FAIL  │
+              │ per rule     │
+              │ per record   │
+              └──────┬───────┘
+                     │
+        ┌────────────▼────────────────┐
+        │     ValidationReport        │
+        │  total: 10000               │
+        │  passed: 9998               │
+        │  failed: 2                  │
+        │  pass_rate: 99.98%          │
+        │  is_acceptable: true        │
+        │  (≥99.9% AND 0 critical)   │
+        └─────────────────────────────┘
+</pre>
+</div>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 14: Premium Range Rules by Product Type</div>
+<pre>
+  Product Type        Min Premium    Max Premium    Coverage Min
+  ──────────────────────────────────────────────────────────────
+  term_life           $50            $5,000         $25,000
+  whole_life          $100           $50,000        $50,000
+  universal_life      $200           $100,000       $100,000
+  variable_life       $200           $75,000        $75,000
+  annuity             $1,000         $1,000,000     $10,000
+  disability          $25            $2,500         $1,000
+  long_term_care      $50            $10,000        $5,000
+
+  Example:
+  whole_life policy with premium $30 → ❌ FAIL (below $100 minimum)
+  term_life policy with premium $150 → ✅ PASS (within $50-$5,000)
+</pre>
+</div>
+
+<div class="card-analogy">
+  <div class="card-title">🏥 Real-World Analogy: Hospital Admission Check</div>
+  <p>Business rules are like a hospital's admission checklist. Before a patient enters the ward, nurses check: valid ID? (policy format) Insurance active? (status check) Vitals in range? (premium range) Allergies flagged? (coverage minimum). If any critical check fails, the patient doesn't get admitted until it's resolved.</p>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2 id="loading">07. FAST System Loading</h2>
+
+<p>After transformation and validation, records are pushed to the FAST cloud platform via its REST API. Records are sent in batches of 500 with automatic retry and exponential backoff.</p>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 15: FAST API Loading</div>
+<pre>
+  ┌───────────────────────────────────────────────────────────┐
+  │  FASTLoader.load_batch()                                  │
+  │                                                           │
+  │  POST /api/v2/entities/{entity_type}/batch                │
+  │  Headers: Authorization: Bearer {api_key}                 │
+  │  Body: {                                                  │
+  │    "entity_type": "policy",                               │
+  │    "deployment_slot": "green",     ← Load to staging      │
+  │    "dry_run": false,                                      │
+  │    "records": [ {record1}, {record2}, ... {record500} ]   │
+  │  }                                                        │
+  │                                                           │
+  │  Retry Logic (exponential backoff):                       │
+  │  ┌─────────┐    fail    ┌─────────┐   fail   ┌─────────┐ │
+  │  │Attempt 1│───────────►│Attempt 2│──────────►│Attempt 3│ │
+  │  │         │  wait 2s   │         │  wait 4s  │         │ │
+  │  └────┬────┘            └────┬────┘           └────┬────┘ │
+  │       │ success              │ success             │fail  │
+  │       ▼                      ▼                     ▼      │
+  │    Return                 Return               RAISE      │
+  │    result                 result                ERROR      │
+  └───────────────────────────────────────────────────────────┘
+</pre>
+</div>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 16: Exponential Backoff Timing</div>
+<pre>
+  Attempt   Wait Before Retry   Total Elapsed
+  ─────────────────────────────────────────────
+  1         —                   0s
+  2         2^1 = 2 seconds     2s
+  3         2^2 = 4 seconds     6s
+  (max)     RAISE EXCEPTION     6s
+
+  Why exponential backoff?
+  • Gives the server time to recover
+  • Prevents "thundering herd" (all clients retrying at once)
+  • 2^n growth means we wait longer each time
+  • After max_retries, we give up and let the pipeline handle it
+</pre>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2 id="bluegreen">08. Blue/Green Deployment Strategy</h2>
+
+<p>This is the key to <strong>zero-downtime migration</strong>. FAST has two deployment "slots": Blue (production) and Green (staging). We load new data into Green, validate it, then atomically swap Green → Production.</p>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 17: Blue/Green Deployment — Normal Flow</div>
+<pre>
+  BEFORE MIGRATION:
+  ┌─────────────────────────┐    ┌─────────────────────────┐
+  │      BLUE SLOT          │    │     GREEN SLOT           │
+  │   (PRODUCTION) 🟢       │    │   (EMPTY/STAGING)        │
+  │                         │    │                          │
+  │  Users query this slot  │    │  Available for loading   │
+  │  Current live data      │    │                          │
+  └─────────────────────────┘    └──────────────────────────┘
+
+  STEP 1 — LOAD TO GREEN:
+  ┌─────────────────────────┐    ┌─────────────────────────┐
+  │      BLUE SLOT          │    │     GREEN SLOT           │
+  │   (PRODUCTION) 🟢       │    │   (LOADING...) 🔄        │
+  │                         │    │                          │
+  │  Users still here       │    │  New data being loaded   │
+  │  Zero interruption      │    │  Not yet visible         │
+  └─────────────────────────┘    └──────────────────────────┘
+
+  STEP 2 — RECONCILE GREEN:
+  ┌─────────────────────────┐    ┌─────────────────────────┐
+  │      BLUE SLOT          │    │     GREEN SLOT           │
+  │   (PRODUCTION) 🟢       │    │   (VALIDATING) 🔍        │
+  │                         │    │                          │
+  │  Users still here       │    │  Compare source vs green │
+  │  Zero interruption      │    │  99.99% match required   │
+  └─────────────────────────┘    └──────────────────────────┘
+
+  STEP 3 — PROMOTE (atomic swap):
+  ┌─────────────────────────┐    ┌─────────────────────────┐
+  │      BLUE SLOT          │    │     GREEN SLOT           │
+  │   (NOW STAGING)         │ ◄──┤──► (NOW PRODUCTION) 🟢   │
+  │                         │SWAP│                          │
+  │  Old data preserved     │    │  Users now query here    │
+  │  Available for rollback │    │  New migrated data live  │
+  └─────────────────────────┘    └──────────────────────────┘
+</pre>
+</div>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 18: Rollback Scenarios</div>
+<pre>
+  SCENARIO A: Reconciliation fails (BEFORE promotion)
+  ────────────────────────────────────────────────────
+  Action: Simply DISCARD the green slot
+  Impact: Zero. Production was never touched.
+  Time:   Instant (just mark green as empty)
+
+  ┌──────────────┐    ┌──────────────┐
+  │ BLUE (prod)  │    │ GREEN ❌      │
+  │ Unchanged 🟢  │    │ Discarded    │
+  └──────────────┘    └──────────────┘
+
+
+  SCENARIO B: Issue found AFTER promotion (rare)
+  ────────────────────────────────────────────────────
+  Action: EMERGENCY SWAP — swap back to blue
+  Impact: Brief (seconds). Old data restored instantly.
+  Time:   Seconds (atomic pointer swap)
+
+  ┌──────────────┐    ┌──────────────┐
+  │ BLUE          │◄──┤──►GREEN (prod) │
+  │ Old data     │SWAP│  Has issue   │
+  │ Back to prod │    │  Now staging │
+  └──────────────┘    └──────────────┘
+  Result: Blue is production again, green is staging.
+          Old data restored. Crisis averted.
+</pre>
+</div>
+
+<div class="card-analogy">
+  <div class="card-title">🎭 Real-World Analogy: Theater Understudies</div>
+  <p>Blue/Green is like a theater with two stages. The audience watches the main stage (Blue/production). Meanwhile, the new act rehearses on the back stage (Green/staging). Once the director (reconciliation) approves, they swap stages instantly — the audience barely notices. If the new act forgets their lines, the old act is still ready on the back stage.</p>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2 id="reconciliation">09. Record-by-Record Reconciliation</h2>
+
+<p>After loading, we compare <strong>every single record</strong> field-by-field between source (DB2 extract) and target (FAST loaded data). This is the safety net that ensures no data was lost or corrupted.</p>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 19: Reconciliation Process</div>
+<pre>
+  Source (DB2 Extract)              Target (FAST Green Slot)
+  ┌──────────────────────┐         ┌──────────────────────┐
+  │ POL-100001: $1250.50 │         │ POL-100001: $1250.50 │  ✅ MATCH
+  │ POL-100002: $850.00  │         │ POL-100002: $850.00  │  ✅ MATCH
+  │ POL-100003: $3200.75 │         │ POL-100003: $3200.74 │  ⚠️  MISMATCH (0.01)
+  │ POL-100004: $500.00  │         │ (missing)            │  ❌ MISSING IN TARGET
+  │ (doesn't exist)      │         │ POL-100005: $700.00  │  ⚠️  EXTRA IN TARGET
+  └──────────────────────┘         └──────────────────────┘
+
+  Step 1: JOIN on composite key (policy_id)
+  Step 2: For matched keys → compare EVERY field
+  Step 3: For unmatched keys → flag as missing/extra
+  Step 4: Produce ReconciliationReport
+</pre>
+</div>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 20: Field Comparison Logic</div>
+<pre>
+  For each field in a matched record:
+  ┌──────────────────────────────────────────────────────┐
+  │                                                      │
+  │  Both NULL?  ───► YES ───► ✅ MATCH (null = null)    │
+  │      │                                               │
+  │      NO                                              │
+  │      │                                               │
+  │  One NULL?   ───► YES ───► ❌ MISMATCH (type: missing│
+  │      │                         or extra)             │
+  │      NO                                              │
+  │      │                                               │
+  │  Both numeric? ──► YES ──► Use tolerance comparison  │
+  │      │                     math.isclose(a, b,        │
+  │      │                       abs_tol=0.001)          │
+  │      │                     1250.5001 ≈ 1250.5002 ✅  │
+  │      │                     1250.50   ≠ 1251.00   ❌  │
+  │      NO                                              │
+  │      │                                               │
+  │  String compare ──► Case-insensitive, trimmed        │
+  │                     "JOHN" == "John"  ✅             │
+  │                     " DOE " == "DOE"  ✅             │
+  │                     "active" ≠ "lapsed" ❌           │
+  └──────────────────────────────────────────────────────┘
+</pre>
+</div>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 21: Acceptance Criteria</div>
+<pre>
+  ReconciliationReport:
+  ┌─────────────────────────────────────────────────────────┐
+  │  total_source:     100,000                              │
+  │  total_target:     100,000                              │
+  │  matched:          99,992                               │
+  │  mismatched:       8                                    │
+  │  missing_in_target: 0       ← CRITICAL: must be ZERO   │
+  │  missing_in_source: 0                                   │
+  │                                                         │
+  │  match_rate: 99.992%                                    │
+  │                                                         │
+  │  is_acceptable = (match_rate >= 99.99%)                 │
+  │                  AND (missing_in_target == 0)           │
+  │                                                         │
+  │  ✅ 99.992% >= 99.99% AND 0 missing = ACCEPTABLE       │
+  │                                                         │
+  │  ❌ If match_rate < 99.99% OR any missing → ROLLBACK   │
+  └─────────────────────────────────────────────────────────┘
+
+  Why 99.99% and not 100%?
+  • Floating point precision differences between DB2 packed decimal
+    and FAST's double representation cause tiny rounding diffs
+  • 0.01% tolerance = 10 mismatches per 100,000 records
+  • These are logged and reviewed, but don't block promotion
+  • But ZERO tolerance for MISSING records (data loss is unacceptable)
+</pre>
+</div>
+
+<div class="card-analogy">
+  <div class="card-title">📋 Real-World Analogy: Moving Company Inventory</div>
+  <p>After movers deliver your boxes, you check the inventory sheet item by item. A scratch on a lamp (value mismatch)? Annoying but acceptable. A missing wedding album (missing_in_target)? Unacceptable — stop everything, find it. That's our 99.99% match with zero missing tolerance.</p>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2 id="lineage">10. Metadata Lineage Tracking</h2>
+
+<p>For every field of every record, we track: where it came from, what transformation was applied, and where it ended up. This enables auditors to answer: "Where did this value come from?"</p>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 22: Lineage Entry Structure</div>
+<pre>
+  ┌──────────────────────────────────────────────────────────────┐
+  │  LineageEntry                                                │
+  │  ─────────────────────────────────────────────────────────── │
+  │  lineage_id:    "a1b2c3d4"                                  │
+  │  job_id:        "MIG-20260115-abc12345"                      │
+  │  record_id:     "POL-100001"                                 │
+  │                                                              │
+  │  SOURCE                          TARGET                      │
+  │  ┌─────────────────────┐        ┌─────────────────────┐     │
+  │  │ table: db2_policies │        │ table: fast_policies│     │
+  │  │ column: FIRST_NM    │  ────► │ column: first_name  │     │
+  │  │ value: "JOHN"       │        │ value: "John"       │     │
+  │  └─────────────────────┘        └─────────────────────┘     │
+  │                                                              │
+  │  transformation: "name_title_case"                           │
+  │  etl_commit_id:  "abc1234"                                   │
+  │  timestamp:      "2026-01-15T14:30:00Z"                      │
+  └──────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 23: Lineage Query Types</div>
+<pre>
+  FORWARD LINEAGE: "Where does DB2.FIRST_NM go?"
+  ────────────────────────────────────────────────
+  db2_policies.FIRST_NM ──► fast_policies.first_name
+                         ──► fast_reports.policyholder_name
+                         ──► fast_letters.greeting_name
+
+  "If I change FIRST_NM in DB2, these 3 FAST fields are affected."
+
+
+  BACKWARD LINEAGE: "Where did fast_policies.premium_amount come from?"
+  ────────────────────────────────────────────────────────────────────
+  fast_policies.premium_amount ◄── db2_policies.PREM_AMT
+                                    Transform: packed_decimal_to_float
+                                    Job: MIG-20260115-abc12345
+
+  "This FAST field came from DB2's PREM_AMT column, converted from packed decimal."
+
+
+  IMPACT ANALYSIS: "What breaks if DB2.STATUS_CD changes?"
+  ────────────────────────────────────────────────────────
+  db2_policies.STATUS_CD ──► fast_policies.status          (status_code_map)
+                          ──► fast_reports.policy_status    (status_code_map)
+                          ──► fast_dashboard.active_count   (derived metric)
+
+  Result: {
+    "affected_tables": 3,
+    "affected_columns": 3,
+    "details": { "fast_policies": ["status"], ... }
+  }
+</pre>
+</div>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 24: Lineage Buffer & Flush Pattern</div>
+<pre>
+  Track entries accumulate in memory buffer:
+
+  track() → buffer: [entry1]
+  track() → buffer: [entry1, entry2]
+  track() → buffer: [entry1, entry2, entry3]
+  ...
+  track() → buffer reaches batch_size (1000)
+         → AUTO-FLUSH to PostgreSQL
+         → buffer: [] (empty)
+  track() → buffer: [entry1001]
+  ...
+
+  Why buffer?
+  • Individual INSERTs to PostgreSQL = slow (1ms each × 1M = 1000 seconds)
+  • Bulk INSERT 1000 at once = fast (50ms × 1000 batches = 50 seconds)
+  • 20x faster with buffering
+  • flush() called automatically at batch_size OR manually at end of job
+</pre>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2 id="chatbot">11. AI Lineage Chatbot</h2>
+
+<p>The chatbot lets data stewards and auditors ask <strong>natural language questions</strong> about data lineage instead of writing SQL queries. It uses Azure OpenAI GPT-4 with RAG (Retrieval Augmented Generation).</p>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 25: RAG Architecture</div>
+<pre>
+  User: "Where did premium_amount come from?"
+           │
+           ▼
+  ┌────────────────────┐
+  │  1. CLASSIFY INTENT │
+  │  → "lineage_backward"│
+  └────────┬───────────┘
+           │
+           ▼
+  ┌────────────────────────────┐
+  │  2. EXTRACT ENTITIES       │
+  │  → column: premium_amount  │
+  │  → table: fast_policies    │
+  └────────┬───────────────────┘
+           │
+           ▼
+  ┌────────────────────────────────────────────┐
+  │  3. RETRIEVE CONTEXT (RAG)                 │
+  │  ┌──────────────────┐                      │
+  │  │    ChromaDB       │  Vector similarity  │
+  │  │  (Vector Store)   │  search returns     │
+  │  │                   │  relevant lineage   │
+  │  │  Indexed lineage  │  entries            │
+  │  │  entries          │                      │
+  │  └────────┬─────────┘                      │
+  │           │                                │
+  │  + Lineage Engine queries:                 │
+  │    query_backward("fast_policies",         │
+  │                   "premium_amount")        │
+  └────────┬───────────────────────────────────┘
+           │
+           ▼
+  ┌────────────────────────────────────────────┐
+  │  4. GENERATE RESPONSE                      │
+  │  ┌──────────────────────────────────┐      │
+  │  │     Azure OpenAI (GPT-4)         │      │
+  │  │                                  │      │
+  │  │  System: You are a data lineage  │      │
+  │  │  assistant for insurance...      │      │
+  │  │                                  │      │
+  │  │  Context: [retrieved lineage     │      │
+  │  │  entries from step 3]            │      │
+  │  │                                  │      │
+  │  │  User: Where did premium_amount  │      │
+  │  │  come from?                      │      │
+  │  └──────────────┬───────────────────┘      │
+  │                 │                          │
+  └─────────────────┼──────────────────────────┘
+                    ▼
+  "The premium_amount field in fast_policies came from
+   DB2's PREM_AMT column in the db2_policies table.
+   It was transformed using packed_decimal_to_float,
+   which converts DB2's packed decimal format to a
+   standard floating-point number. This transformation
+   was applied during migration job MIG-20260115."
+</pre>
+</div>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 26: Intent Classification</div>
+<pre>
+  User Query                              Classified Intent
+  ─────────────────────────────────────────────────────────────
+  "Where did X come from?"            →  lineage_backward
+  "Source of premium_amount?"          →  lineage_backward
+  "What uses policy_id downstream?"    →  lineage_forward
+  "Where does STATUS_CD go?"           →  lineage_forward
+  "Did the reconciliation pass?"       →  reconciliation
+  "Any mismatches in job J-001?"       →  reconciliation
+  "How was SSN transformed?"           →  transformation
+  "What changes were applied?"         →  transformation
+  "What's the migration status?"       →  status
+  "How many records loaded?"           →  status
+  "What breaks if I change X?"         →  impact
+  "Everything else"                    →  general
+
+  Classification uses keyword matching (fast, deterministic):
+  "come from" / "source of"  → backward
+  "downstream" / "feeds into" → forward
+  etc.
+</pre>
+</div>
+
+<div class="card-analogy">
+  <div class="card-title">🤖 Real-World Analogy: Expert Librarian</div>
+  <p>The chatbot is like a librarian who has read every record in the catalog (ChromaDB index). When you ask "where did this book reference come from?", instead of making you search the card catalog yourself, the librarian finds the relevant sources (RAG retrieval) and explains the answer in plain English (GPT-4 generation). The librarian never makes up answers — they only cite what's actually in the catalog.</p>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2 id="database">12. Database Schema &amp; Models</h2>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 27: Entity Relationship Diagram</div>
+<pre>
+  ┌──────────────────────┐       ┌──────────────────────┐
+  │   migration_jobs     │       │   entity_mappings    │
+  │──────────────────────│       │──────────────────────│
+  │ id (UUID) PK         │       │ id (UUID) PK         │
+  │ entity_type          │       │ entity_type          │
+  │ source_table         │       │ source_table         │
+  │ status (enum)        │       │ source_column        │
+  │ total_records        │       │ target_table         │
+  │ processed_records    │       │ target_column        │
+  │ error_message        │       │ transformation_rule  │
+  │ config (JSONB)       │       │ validation_rule      │
+  │ started_at           │       │ is_key               │
+  │ completed_at         │       │ created_at           │
+  │ created_at           │       └──────────────────────┘
+  │ updated_at           │
+  └──────────┬───────────┘
+             │
+    ┌────────┼────────────────────────┐
+    │        │                        │
+    ▼        ▼                        ▼
+  ┌────────────────────┐  ┌─────────────────────────┐  ┌──────────────────┐
+  │ migration_batches  │  │ reconciliation_results  │  │ lineage_records  │
+  │────────────────────│  │─────────────────────────│  │──────────────────│
+  │ id (UUID) PK       │  │ id (UUID) PK            │  │ id (UUID) PK     │
+  │ job_id (FK)        │  │ job_id (FK)             │  │ job_id (FK)      │
+  │ batch_number       │  │ batch_id (FK)           │  │ record_id        │
+  │ status             │  │ source_record_id        │  │ source_table     │
+  │ record_count       │  │ target_record_id        │  │ source_column    │
+  │ source_checksum    │  │ status                  │  │ source_value     │
+  │ target_checksum    │  │ mismatched_fields (JSONB)│  │ target_table     │
+  │ s3_path            │  │ severity                │  │ target_column    │
+  │ duration_ms        │  │ created_at              │  │ target_value     │
+  │ error_message      │  └─────────────────────────┘  │ transformation   │
+  │ created_at         │                               │ etl_commit_id    │
+  └────────────────────┘                               │ created_at       │
+                                                       └──────────────────┘
+  ┌──────────────────────┐
+  │   audit_events       │
+  │──────────────────────│
+  │ id (UUID) PK         │
+  │ event_type           │        Status Flow:
+  │ action               │        pending → extracting → transforming
+  │ entity_type          │        → loading → reconciling
+  │ entity_id            │        → completed | failed | rolled_back
+  │ actor                │
+  │ details (JSONB)      │
+  │ created_at           │
+  └──────────────────────┘
+</pre>
+</div>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 28: Job Status State Machine</div>
+<pre>
+                    ┌─────────┐
+                    │ pending │
+                    └────┬────┘
+                         │
+                    ┌────▼──────┐
+                    │extracting │
+                    └────┬──────┘
+                         │
+                 ┌───────▼────────┐
+                 │ transforming   │
+                 └───────┬────────┘
+                         │
+                    ┌────▼────┐
+                    │ loading │
+                    └────┬────┘
+                         │
+                  ┌──────▼───────┐
+                  │ reconciling  │
+                  └──────┬───────┘
+                         │
+              ┌──────────┼──────────┐
+              ▼          ▼          ▼
+         ┌─────────┐ ┌──────┐ ┌───────────┐
+         │completed│ │failed│ │rolled_back│
+         └─────────┘ └──────┘ └───────────┘
+
+  Any stage can transition directly to "failed".
+  "failed" can transition to "rolled_back" after cleanup.
+</pre>
+</div>
+
+<div class="card-info">
+  <div class="card-title">Why JSONB for mismatched_fields?</div>
+  <p>Each reconciliation result may have different mismatched fields (some records mismatch on "premium", others on "status"). Using PostgreSQL's <code>JSONB</code> column lets us store arbitrary mismatch details without needing a separate table for each possible field combination. JSONB is also indexable with GIN indexes for fast queries.</p>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2 id="pipeline">13. Pipeline Orchestration</h2>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 29: Orchestrator Decision Flow</div>
+<pre>
+  MigrationOrchestrator.run_migration()
+  ┌──────────────────────────────────────────────────────────────┐
+  │                                                              │
+  │  Generate job_id: "MIG-20260330-abc12345"                    │
+  │                                                              │
+  │  ┌──────────┐   success   ┌──────────┐   success            │
+  │  │ EXTRACT  │────────────►│  STAGE   │────────────►          │
+  │  └────┬─────┘             └──────────┘                       │
+  │       │ fail                                                 │
+  │       ▼                                                      │
+  │    ROLLBACK              ┌───────────┐  success              │
+  │                     ────►│ TRANSFORM │────────────►          │
+  │                          └─────┬─────┘                       │
+  │                                │ fail                        │
+  │                                ▼                             │
+  │                             ROLLBACK                         │
+  │                                                              │
+  │           ┌──────────┐  acceptable    ┌──────────┐           │
+  │      ────►│ VALIDATE │───────────────►│   LOAD   │──►        │
+  │           └────┬─────┘                └────┬─────┘           │
+  │                │ not acceptable             │ errors          │
+  │                ▼                            ▼                 │
+  │             ROLLBACK                    ROLLBACK              │
+  │                                                              │
+  │           ┌───────────┐  acceptable    ┌──────────┐          │
+  │      ────►│ RECONCILE │───────────────►│ PROMOTE? │          │
+  │           └─────┬─────┘                └────┬─────┘          │
+  │                 │ not acceptable             │                │
+  │                 ▼                   auto_promote?             │
+  │              ROLLBACK              ┌────────┴────────┐       │
+  │                                    │ YES             │ NO    │
+  │                              ┌─────▼─────┐   ┌──────▼─────┐ │
+  │                              │  PROMOTE   │   │  AWAIT     │ │
+  │                              │ (auto)     │   │  MANUAL    │ │
+  │                              └────────────┘   └────────────┘ │
+  └──────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 30: dry_run vs Normal Execution</div>
+<pre>
+  dry_run=True                          dry_run=False
+  ────────────────                      ─────────────
+  ✅ EXTRACT                            ✅ EXTRACT
+  ✅ STAGE                              ✅ STAGE
+  ✅ TRANSFORM                          ✅ TRANSFORM
+  ✅ VALIDATE                           ✅ VALIDATE
+  ⏭️  LOAD (skipped)                    ✅ LOAD
+  ⏭️  RECONCILE (skipped)               ✅ RECONCILE
+  ⏭️  PROMOTE (skipped)                 ✅ PROMOTE (or manual)
+
+  dry_run is for:
+  • Testing the pipeline without affecting production
+  • Validating data quality before committing to load
+  • CI/CD pipeline validation
+  • Developer testing with mock data
+</pre>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2 id="testing">14. Testing Strategy</h2>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 31: Test Pyramid</div>
+<pre>
+                    ┌───────────┐
+                    │   E2E     │  docker-compose up + run_migration.py
+                    │  Tests    │  Full pipeline integration
+                   ─┴───────────┴─
+                  ┌─────────────────┐
+                  │  Integration    │  Real PostgreSQL, mocked AWS
+                  │  Tests          │  API endpoint testing
+                 ─┴─────────────────┴─
+               ┌───────────────────────┐
+               │    Unit Tests         │  Individual components
+               │    (pytest)           │  Reconciler, Business Rules,
+               │                      │  Field Transformer, Extractor,
+               │                      │  Lineage Engine, Chatbot
+               └───────────────────────┘
+
+  Test files:
+  • test_reconciler.py      — 10 tests: match, mismatch, null, tolerance, composite key
+  • test_business_rules.py  — 9 tests: valid records, invalid policy/premium/status, batch
+  • test_field_transformer.py — 11 tests: each transform function + DataFrame transform
+  • test_db2_extractor.py   — 6 tests: mock extraction, record structure, checksums
+  • test_lineage.py         — 8 tests: track, query forward/backward, impact, flush
+  • test_chatbot.py         — 10 tests: intent classification, entity extraction, context
+</pre>
+</div>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 32: Fixture Sharing with conftest.py</div>
+<pre>
+  conftest.py provides shared test data:
+
+  sample_policy_records ──► 3 realistic insurance records
+       │
+       ├──► sample_source_df   (DataFrame from records)
+       │
+       ├──► sample_target_df   (identical DataFrame for reconciliation)
+       │
+       └──► mismatched_target_df  (DataFrame with deliberate errors)
+
+  Every test file imports these fixtures via pytest injection:
+
+  def test_perfect_match(sample_source_df, sample_target_df):
+      reconciler = Reconciler(key_columns=["policy_id"])
+      report = reconciler.reconcile(sample_source_df, sample_target_df)
+      assert report.matched == 3
+</pre>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2 id="deployment">15. Docker &amp; CI/CD Deployment</h2>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 33: Docker Compose Architecture</div>
+<pre>
+  docker-compose.yml
+  ┌─────────────────────────────────────────────────────────┐
+  │                                                         │
+  │  ┌──────────────────┐                                   │
+  │  │    app            │  Migration Engine API             │
+  │  │    (FastAPI)      │  Port: 8000                       │
+  │  │    Python 3.11    │  Depends on: postgres             │
+  │  └────────┬─────────┘                                   │
+  │           │                                             │
+  │  ┌────────▼─────────┐  ┌───────────────────┐           │
+  │  │   postgres        │  │   localstack      │           │
+  │  │   (PostgreSQL 15) │  │   (Mock AWS)      │           │
+  │  │   Port: 5432      │  │   Port: 4566      │           │
+  │  │   Metadata store  │  │   S3 + Glue mock  │           │
+  │  └──────────────────┘  └───────────────────┘           │
+  │                                                         │
+  │  Volumes:                                               │
+  │  • pgdata: PostgreSQL persistence                       │
+  │  • localstack_data: Mock AWS persistence                │
+  └─────────────────────────────────────────────────────────┘
+</pre>
+</div>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 34: GitHub Actions CI Pipeline</div>
+<pre>
+  On push/PR to main:
+
+  ┌──────────────────┐
+  │   test job        │
+  │                  │
+  │  Python 3.11     │    ┌──────────────────────────┐
+  │  Python 3.12     │    │  Services:               │
+  │  (matrix)        │    │  PostgreSQL 15 (sidecar) │
+  │                  │    └──────────────────────────┘
+  │  Steps:          │
+  │  1. Checkout     │
+  │  2. Setup Python │
+  │  3. Install deps │
+  │  4. Ruff lint    │─── ❌ Fail fast on lint errors
+  │  5. Mypy types   │─── ⚠️  Continue on type errors
+  │  6. Pytest       │─── ❌ Fail on test failures
+  │     + coverage   │
+  └────────┬─────────┘
+           │ success
+           ▼
+  ┌──────────────────┐  (only on main branch)
+  │  docker job       │
+  │                  │
+  │  1. Build image  │
+  │  2. Start container│
+  │  3. Health check │─── curl /health
+  │  4. Stop         │
+  └──────────────────┘
+</pre>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2 id="interview">16. Interview Questions &amp; Answers</h2>
+
+<div class="qa">
+  <div class="q">Q1: Why did you choose a 7-stage pipeline instead of a simpler 3-stage ETL?</div>
+  <div class="a">Each stage serves a distinct purpose that can't be safely merged. Extraction is decoupled from transformation via S3 (allows re-running transforms without re-extracting). Validation is separate from transformation because business rules change independently from field mappings. Reconciliation is separate from loading because we need to compare source vs target, not just check loading errors. The pipeline is designed for auditability — each stage produces artifacts that can be independently verified.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q2: How does the blue/green deployment achieve zero downtime?</div>
+  <div class="a">Production always serves from the active slot (initially Blue). New data loads into the inactive slot (Green). Users are never affected during loading because they're reading from Blue. Promotion is an atomic pointer swap — one moment users read Blue, the next they read Green. If issues are found post-promotion, we swap back to Blue (which still has the old data). The entire operation is like flipping a switch, not a gradual migration.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q3: Why 99.99% match rate instead of 100%?</div>
+  <div class="a">DB2 uses packed decimal (BCD) for currency amounts, while FAST uses IEEE 754 floating point. The conversion can introduce tiny rounding differences at the last decimal place (e.g., 1250.5001 vs 1250.5002). We set <code>abs_tol=0.001</code> for numeric comparisons. However, we have ZERO tolerance for missing records — any record present in source but absent in target is a critical failure that blocks promotion.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q4: What's the difference between forward and backward lineage?</div>
+  <div class="a"><strong>Forward lineage</strong> answers "if I change source column X, what target fields are affected?" — useful for impact analysis before schema changes. <strong>Backward lineage</strong> answers "where did target field Y come from?" — useful for auditors investigating a specific value. Both are built from the same lineage entries, just queried in opposite directions.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q5: Why XXHash instead of SHA-256 for integrity checksums?</div>
+  <div class="a">We need integrity verification, not cryptographic security. XXHash runs at 10GB/s vs SHA-256's 500MB/s — 20x faster. When processing millions of records per batch, this difference matters. We're checking "did the data arrive intact?" not "is this data tamper-proof?" If we needed tamper resistance (e.g., regulatory proof), we'd use SHA-256.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q6: Why ProcessPoolExecutor instead of ThreadPoolExecutor for parallel extraction?</div>
+  <div class="a">DB2 extraction involves CPU-bound work: parsing EBCDIC encoding, converting packed decimals, computing checksums. Python's GIL prevents true parallel CPU execution with threads. ProcessPoolExecutor spawns separate OS processes, each with their own GIL, enabling true parallel computation. The trade-off is higher memory usage (each process has its own memory space) and more expensive inter-process communication.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q7: How does the rollback manager handle post-promotion failures?</div>
+  <div class="a">Two scenarios: (1) <strong>Pre-promotion failure</strong>: simply discard the Green slot — zero impact since production is still on Blue. (2) <strong>Post-promotion failure</strong> (rare): emergency_swap() promotes Blue back to production. The old data is still in Blue because blue/green keeps both versions. This takes seconds. The key insight is that Blue slot isn't deleted after promotion — it becomes the new staging area, preserving the fallback.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q8: Why use RAG for the chatbot instead of fine-tuning GPT-4?</div>
+  <div class="a">Fine-tuning requires retraining the model every time lineage data changes (every migration job). RAG retrieves fresh data from ChromaDB at query time — always up to date. Fine-tuning is also expensive and slow (hours), while RAG indexing takes seconds. RAG also provides verifiable sources — we can show the user exactly which lineage entries the answer is based on, preventing hallucination.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q9: How does the system handle schema changes in DB2 or FAST?</div>
+  <div class="a">The entity_mappings table decouples source and target schemas. When a DB2 column is renamed, we update the mapping (source_column). When FAST adds a new field, we add a new mapping row. The transformation_rule column defines how to convert between formats. This means schema changes are configuration changes, not code changes — no redeployment needed for most mapping updates.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q10: What happens if the Glue job fails mid-transformation?</div>
+  <div class="a">The Glue transformer polls job status every 30 seconds. On FAILED status, it raises an exception. The orchestrator catches this, marks the job as "failed" in the metadata store, and triggers rollback (which cleans up any S3 staging data). Since we haven't loaded to FAST yet, there's nothing to rollback on the FAST side. The raw extracted data is still in S3, so we can retry transformation without re-extracting.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q11: How do you ensure data lineage is captured for every field?</div>
+  <div class="a">The FieldTransformer's <code>transform_dataframe()</code> method returns both the transformed DataFrame and a list of lineage entries. For every column that has a registered transform, it records the source column, source value, target column, target value, and transformation name. The orchestrator feeds these entries to the LineageEngine, which buffers them and bulk-inserts to PostgreSQL.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q12: Why Parquet over CSV for S3 staging?</div>
+  <div class="a">Three reasons: (1) <strong>Schema preservation</strong> — CSV loses type information, Parquet preserves it. A column that was DECIMAL(10,2) in DB2 stays numeric in Parquet. (2) <strong>Size</strong> — Parquet with Snappy compression is ~10x smaller than CSV. With millions of records, this saves significant S3 costs and transfer time. (3) <strong>Spark performance</strong> — AWS Glue (Spark) reads Parquet natively via memory mapping, while CSV requires parsing every row.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q13: How would you scale this for billions of records?</div>
+  <div class="a">Three scaling strategies: (1) <strong>Horizontal extraction</strong> — increase ProcessPoolExecutor workers and run against DB2 read replicas. (2) <strong>Glue scaling</strong> — increase DPU allocation (from G.1X to G.2X) and worker count (10→100). Spark auto-partitions the data. (3) <strong>Partitioned reconciliation</strong> — reconcile by partition (date range, region) instead of full-table compare. The architecture already supports this — each component is stateless and can process any partition independently.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q14: What monitoring and observability do you have?</div>
+  <div class="a">Structlog provides structured JSON logging with context (job_id, batch_number, duration_ms) at every stage. The audit_events table records every significant action. The metadata store tracks per-batch timing and error counts. In production, we'd add Prometheus metrics (extraction_duration_seconds, reconciliation_match_rate) and Grafana dashboards, plus PagerDuty alerts for failed jobs or low match rates.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q15: Why Pydantic Settings instead of environment variables directly?</div>
+  <div class="a">Pydantic Settings provides validation, type coercion, and documentation in one place. <code>os.getenv("BATCH_SIZE")</code> returns a string and can be None. Pydantic gives us <code>settings.batch_size</code> as a validated integer with a default, raising clear errors if required variables are missing. The <code>@lru_cache</code> on <code>get_settings()</code> ensures we parse environment variables once, not per-request.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q16: How does the reconciler handle duplicate keys in the source?</div>
+  <div class="a">When <code>set_index("_recon_key")</code> encounters a duplicate key, <code>loc[key]</code> returns a DataFrame instead of a Series. The code checks <code>isinstance(source_row, pd.DataFrame)</code> and takes <code>iloc[0]</code> (first occurrence). This is a conscious design choice — in insurance data, policy_id should be unique. Duplicates indicate a data quality issue that should be flagged in validation, but the reconciler handles it gracefully rather than crashing.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q17: What's the purpose of the JSONB config column on migration_jobs?</div>
+  <div class="a">Different migration jobs have different configuration: batch sizes, tolerance thresholds, column mappings, Glue DPU settings. Rather than adding a column for every possible config option (which would require schema migrations), we store the config as JSONB. This makes the migration_jobs table flexible — a policy migration and a claims migration can have completely different configs without schema changes.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q18: How does exponential backoff prevent thundering herd?</div>
+  <div class="a">If 100 batch uploads fail simultaneously (e.g., FAST rate limit), without backoff they'd all retry at once — making the problem worse. With exponential backoff (2s, 4s, 8s...), each retry waits longer. Adding jitter (random offset) means the 100 retries spread out over time instead of hitting simultaneously. Our implementation uses <code>time.sleep(2 ** attempt)</code> — simple but effective.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q19: Why do you buffer lineage entries instead of inserting immediately?</div>
+  <div class="a">A single migration job can generate millions of lineage entries (one per field per record). Individual PostgreSQL INSERTs take ~1ms each. 1M entries × 1ms = 1000 seconds (17 minutes) of just lineage writes. Buffering 1000 entries and doing bulk INSERT takes ~50ms per batch. 1000 batches × 50ms = 50 seconds. That's a 20x performance improvement from a simple batching pattern.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q20: What security considerations are built in?</div>
+  <div class="a">SSN masking ensures PII doesn't propagate to the target system. API authentication uses Bearer tokens for FAST API calls. The .env.example documents required secrets without exposing them. Docker health checks verify the service is running. In production, we'd add: encrypted S3 buckets (SSE-S3), VPC endpoints for S3/Glue (no public internet), IAM roles with least privilege, and audit logging of all API access.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q21: How would you add a new entity type (e.g., agents)?</div>
+  <div class="a">Three steps: (1) Add field mappings to entity_mappings table (source columns → target columns with transform rules). (2) Add any agent-specific business rules to BusinessRuleValidator. (3) Run the pipeline with <code>--entity agents --table AGENT_MASTER</code>. No code changes needed if the existing transforms cover the field types. The architecture is designed so adding entities is a configuration task.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q22: Why is missing_in_target a critical severity but missing_in_source is only a warning?</div>
+  <div class="a"><strong>Missing in target</strong> means data loss — a record exists in DB2 but didn't make it to FAST. This is unacceptable in insurance (missing a policy could mean an uncovered claim). <strong>Missing in source</strong> means an extra record in FAST that wasn't in this DB2 extract — it might have been loaded by a previous migration batch or created directly in FAST. Extra data is suspicious but not dangerous; missing data is catastrophic.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q23: What's the difference between dry_run and the mock implementations?</div>
+  <div class="a"><code>dry_run=True</code> runs the real pipeline but skips the LOAD stage (doesn't write to FAST). It validates extraction, transformation, and business rules against real data. Mock implementations (mock DB2, mock S3) replace external dependencies for local development and testing. You'd use dry_run in staging/pre-prod with real AWS, and mocks in local development with no AWS access.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q24: How does the Alembic migration handle the initial schema?</div>
+  <div class="a">The initial Alembic migration (001_initial_schema) creates all 6 tables with proper column types, foreign keys, and indexes. It uses PostgreSQL-specific features: UUID primary keys (native UUID type), JSONB columns for flexible metadata, and timezone-aware DateTime columns. The downgrade function drops tables in reverse dependency order to avoid foreign key violations.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q25: If you could redesign one component, what would you change?</div>
+  <div class="a">I'd make the reconciler async-capable. Currently, it loads both source and target DataFrames into memory for comparison, which limits us to datasets that fit in RAM. For billion-record tables, I'd switch to streaming comparison: read source and target in sorted key order from Parquet files on S3, compare chunk-by-chunk, and stream results to PostgreSQL. This would reduce memory usage from O(n) to O(batch_size) while maintaining the same comparison logic.</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q26: Walk me through what happens when a user asks the chatbot "Where did the premium come from?"</div>
+  <div class="a">
+    <ol>
+      <li><strong>Intent classification</strong>: "come from" triggers lineage_backward</li>
+      <li><strong>Entity extraction</strong>: "premium" matches known column "premium_amount", infers target table "fast_policies"</li>
+      <li><strong>Context retrieval</strong>: Calls lineage_engine.query_backward("fast_policies", "premium_amount") — returns entries showing it came from db2_policies.PREM_AMT via packed_decimal_to_float</li>
+      <li><strong>RAG augmentation</strong>: ChromaDB vector search finds similar lineage entries for additional context</li>
+      <li><strong>GPT-4 generation</strong>: System prompt + retrieved context + user question → natural language answer citing specific tables, columns, and transformations</li>
+      <li><strong>Response</strong>: Returns answer, intent, sources (for verification), and confidence score</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ── Elevator Pitches ── -->
+<h3>Elevator Pitches</h3>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 35: 30-Second Pitch</div>
+<pre>
+  "I built a data migration engine that moves insurance records
+   from a DB2 mainframe to a modern cloud platform with zero
+   downtime. It uses blue/green deployments so production never
+   goes dark, reconciles every record field-by-field to guarantee
+   99.99% accuracy, tracks the lineage of every data transformation,
+   and includes an AI chatbot so auditors can ask questions about
+   data origins in plain English instead of writing SQL."
+</pre>
+</div>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 36: Technical 60-Second Deep Dive</div>
+<pre>
+  "The pipeline has 7 stages: parallel DB2 extraction with XXHash
+   checksums, S3 staging in Parquet for schema preservation, AWS
+   Glue Spark ETL for field transformations — converting packed
+   decimals, EBCDIC dates, masking SSNs. Business rule validators
+   enforce insurance-domain constraints before loading into FAST
+   via REST API with exponential backoff retries.
+
+   The key innovation is the reconciliation layer: after loading
+   into FAST's green deployment slot, we compare source vs target
+   record-by-record, field-by-field, with configurable numeric
+   tolerance for float precision differences. Only if we hit
+   99.99% match with zero missing records do we atomically
+   promote green to production.
+
+   Every field transformation is tracked in a metadata lineage
+   engine backed by PostgreSQL, enabling forward/backward lineage
+   queries. An AI chatbot using Azure OpenAI GPT-4 with RAG
+   retrieval lets auditors ask natural language questions about
+   data origins."
+</pre>
+</div>
+
+<div class="diagram">
+  <div class="diagram-label">DIAGRAM 37: Tech Stack Summary</div>
+<pre>
+  ┌──────────────────────────────────────────────────────────────┐
+  │                    TECH STACK                                │
+  │──────────────────────────────────────────────────────────────│
+  │                                                              │
+  │  Language:    Python 3.11+ with type hints                   │
+  │  Framework:   FastAPI (REST API), Pydantic (validation)      │
+  │  Database:    PostgreSQL 15 + SQLAlchemy + Alembic           │
+  │  Cloud:       AWS S3, AWS Glue (Spark ETL)                   │
+  │  AI:          Azure OpenAI GPT-4, ChromaDB (vector store)    │
+  │  Data:        pandas, PyArrow, Parquet, Snappy compression   │
+  │  Integrity:   XXHash (10GB/s checksums)                      │
+  │  Logging:     structlog (structured JSON logging)            │
+  │  Testing:     pytest + fixtures + conftest.py                │
+  │  CI/CD:       GitHub Actions (lint → type → test → docker)   │
+  │  Container:   Docker + docker-compose                        │
+  │  Target:      FAST (Financial Administration Service Tech)   │
+  │  Source:      DB2 z/OS mainframe (ibm_db driver)             │
+  │                                                              │
+  └──────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+
+
+</div> <!-- end .container -->
+</body>
+</html>
