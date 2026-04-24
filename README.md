@@ -1,97 +1,75 @@
-# Zero-Downtime Data Migration & Reconciliation Engine
+# Data Migration Engine
 
-A production-grade data migration pipeline that moves insurance data from DB2 mainframes to a modern cloud platform (FAST) with zero downtime, full data lineage tracking, and AI-powered data stewardship.
+A zero-downtime framework for migrating large-scale databases from legacy systems (DB2, mainframe) onto modern stacks. Orchestrates dual-write and shadow-read cutover patterns with automated validation, reconciliation, and lineage tracking.
 
-## Architecture
+## Why this exists
+
+Enterprise database migrations (DB2 → PostgreSQL, Oracle → Aurora, etc.) almost always fail on reconciliation, not on the happy-path writes. Teams get the pipeline working but can't confidently prove that the new system's data matches the old — especially under concurrent writes and across long migration windows.
+
+This engine makes verification as rigorous as the write path.
+
+## What it does
+
+- **Dual-write orchestration** — writes to both source and target during the migration window, with configurable retry and idempotency.
+- **Shadow reads** — production traffic goes to the new system, verified against the old, with configurable drift thresholds.
+- **Automated reconciliation** — row-by-row comparison between source and target, with exception queues for drift.
+- **Lineage tracking** — records every transformation applied to each record for audit and debugging.
+- **AI-assisted investigation** — optional LangChain-based assistant over the reconciliation output and source schema/lineage metadata, so engineers can ask questions in natural language.
+
+## Tech
+
+- **Language:** Python 3.11+
+- **Batch processing:** Apache Spark (via AWS Glue)
+- **Storage:** S3 (staging), PostgreSQL (metadata, reconciliation results)
+- **Orchestration:** AWS Step Functions
+- **Infra as code:** Terraform
+- **AI layer (optional):** LangChain + pgvector for metadata and lineage queries
+
+## Architecture (high level)
 
 ```
-DB2 Mainframe → Parallel Extract → S3 Staging (Parquet)
-    → AWS Glue ETL (Spark) → Field Transforms + Business Rules
-    → FAST Cloud Platform (Blue/Green) → Record-by-Record Reconciliation
-    → Auto-Promote or Rollback
+Source DB  ──►  Extract (Glue/Spark)  ──►  S3 staging  ──►  Transform  ──►  Target DB
+                                                     │
+                                                     └─►  Reconciliation (Spark)
+                                                                  │
+                                                                  └─► Exception queue / dashboard
 ```
 
-## Key Features
-
-- **Parallel DB2 Extraction**: Multi-process extraction with XXHash checksums for integrity verification
-- **AWS Glue ETL**: Spark-based transformations with configurable field mapping rules
-- **Business Rule Validation**: Insurance-domain validators (policy ID format, premium ranges, coverage minimums)
-- **Blue/Green Deployment**: Zero-downtime loading into FAST with atomic promotion and instant rollback
-- **Record-by-Record Reconciliation**: Field-level comparison with configurable numeric tolerance (0.001)
-- **Metadata Lineage**: Per-field source-to-target tracking with forward/backward query support
-- **AI Chatbot**: Azure OpenAI (GPT-4) powered natural language interface for lineage queries
-- **99.99% Match Rate**: Production promotion requires 99.99% reconciliation match rate with zero missing records
-
-## Project Structure
-
-```
-src/
-├── api/              # FastAPI REST endpoints
-├── chatbot/          # AI lineage chatbot (Azure OpenAI + ChromaDB RAG)
-├── config/           # Pydantic settings management
-├── extractors/       # DB2 extraction (single + parallel)
-├── lineage/          # Metadata lineage tracking engine
-├── loaders/          # S3 staging + FAST system loader
-├── models/           # SQLAlchemy models + Pydantic schemas
-├── pipeline/         # Migration orchestrator
-├── reconciliation/   # Reconciler + rollback manager
-├── transformers/     # Field transforms, business rules, Glue ETL
-└── utils/            # Database connection, logging
-tests/                # pytest test suite
-scripts/              # CLI tools for running migrations
-alembic/              # Database migrations
-docs/                 # Learning guide with architecture diagrams
-```
-
-## Quick Start
+## Quick start
 
 ```bash
-# Start infrastructure
-docker-compose up -d
+git clone https://github.com/rajasekharthejan/data-migration-engine
+cd data-migration-engine
+# Requires: Python 3.11+, Terraform 1.5+, AWS CLI configured
 
-# Run database migrations
-alembic upgrade head
-
-# Run a migration (dry run)
-python scripts/run_migration.py --entity policies --table POLICY_MASTER --dry-run
-
-# Run tests
-pytest tests/ -v
-
-# Start API server
-uvicorn src.api.app:app --reload
+terraform -chdir=infra init && terraform -chdir=infra apply
+pip install -e .
+python -m migration_engine run --config ./examples/db2-to-postgres.yaml
 ```
 
-## Tech Stack
+## Configuration
 
-- **Python 3.11+** with type hints
-- **SQLAlchemy** + PostgreSQL (metadata store)
-- **pandas** + PyArrow (data processing)
-- **boto3** (AWS S3, Glue)
-- **FastAPI** (REST API)
-- **Azure OpenAI** GPT-4 (AI chatbot)
-- **ChromaDB** (vector store for RAG)
-- **structlog** (structured logging)
-- **XXHash** (fast checksums, 10GB/s)
-- **Docker** + docker-compose
-- **GitHub Actions** CI/CD
+Migrations are defined in YAML. Example:
 
-## Entity Types
+```yaml
+name: customer-records
+source:
+  type: db2
+  connection: ${DB2_URL}
+target:
+  type: postgres
+  connection: ${POSTGRES_URL}
+strategy: dual-write
+reconciliation:
+  mode: row-by-row
+  drift_threshold: 0.01
+  key_columns: [customer_id]
+```
 
-| Entity | DB2 Source Table | FAST Target | Key Fields |
-|--------|-----------------|-------------|------------|
-| Policies | POLICY_MASTER | fast_policies | policy_id |
-| Claims | CLAIMS_MASTER | fast_claims | claim_id |
-| Premiums | PREMIUM_HIST | fast_premiums | premium_id |
-| Coverage | COVERAGE_DTL | fast_coverage | coverage_id |
-| Agents | AGENT_MASTER | fast_agents | agent_id |
+## Status
 
-## Pipeline Stages
+In development. Core reconciliation module functional. Shadow-read verification and AI assistant under active work.
 
-1. **EXTRACT** — Pull from DB2 in parallel batches with checksums
-2. **STAGE** — Upload Parquet to S3 staging bucket
-3. **TRANSFORM** — Apply field mappings (date formats, packed decimals, SSN masking)
-4. **VALIDATE** — Run business rules (policy ID format, premium ranges)
-5. **LOAD** — Push to FAST green deployment slot
-6. **RECONCILE** — Compare source vs target field-by-field
-7. **PROMOTE** — Atomic blue/green swap (or rollback on failure)
+## License
+
+MIT
